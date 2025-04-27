@@ -25,11 +25,6 @@
         "tamasfe.even-better-toml",
         "fill-labs.dependi",
 
-        // .NET
-        "ms-dotnettools.csharp",
-        "ms-dotnettools.csdevkit",
-        "ms-dotnettools.vscodeintellicode-csharp",
-
         // Terraform
         "HashiCorp.terraform"
       ]
@@ -48,9 +43,6 @@
 
     // Rust
     "ghcr.io/devcontainers/features/rust": {},
-
-    // .NET
-    "ghcr.io/devcontainers/features/dotnet": {},
 
     // Terraform
     "ghcr.io/devcontainers/features/terraform": {}
