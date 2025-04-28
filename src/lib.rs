@@ -63,6 +63,14 @@ impl MetaScraper {
         twitter_title
     }
 
+    /// Retrieves the page title.
+    ///
+    /// Priority order:
+    /// 1. `<meta property="og:title">`
+    /// 2. `<meta name="twitter:title">`
+    /// 3. `<title>`
+    ///
+    /// Returns the first one found.
     pub fn title(&self) -> Option<String> {
         self.extract_og_title()
             .or_else(|| self.extract_twitter_title())
@@ -134,6 +142,14 @@ impl MetaScraper {
         twitter_description
     }
 
+    /// Retrieves the page description.
+    ///
+    /// Priority order:
+    /// 1. `<meta property="og:description">`
+    /// 2. `<meta name="twitter:description">`
+    /// 3. `<meta name="description">`
+    ///
+    /// Returns the first one found.
     pub fn description(&self) -> Option<String> {
         self.extract_og_description()
             .or_else(|| self.extract_twitter_description())
@@ -223,6 +239,13 @@ impl MetaScraper {
         twitter_image
     }
 
+    /// Retrieves the page image URL.
+    ///
+    /// Priority order:
+    /// 1. `<meta property="og:image">`
+    /// 2. `<meta name="twitter:image">`
+    ///
+    /// Returns the first one found.
     pub fn image(&self) -> Option<String> {
         self.extract_og_image()
             .or_else(|| self.extract_twitter_image())
