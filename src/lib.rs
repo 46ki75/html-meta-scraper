@@ -155,6 +155,55 @@ impl MetaScraper {
 
         favicon
     }
+
+    /// Expected Output: `"https://example.com/image.jpg"`
+    /// ```html
+    /// <meta property="og:image" content="https://example.com/image.jpg" />
+    /// ```
+    pub fn extract_og_image(&self) -> Option<String> {
+        let og_image_selector = scraper::Selector::parse("meta[property='og:image']").unwrap();
+
+        let og_image = self
+            .document
+            .select(&og_image_selector)
+            .next()
+            .and_then(|element| {
+                element
+                    .value()
+                    .attr("content")
+                    .map(|content| content.to_string())
+            });
+
+        og_image
+    }
+
+    /// Expected Output: `"https://example.com/image.jpg"`
+    /// ```html
+    /// <meta name="twitter:image" content="https://example.com/image.jpg" />
+    /// <meta name="twitter:image:alt" content="Image description" />
+    /// ```
+    pub fn extract_twitter_image(&self) -> Option<String> {
+        let twitter_image_selector =
+            scraper::Selector::parse("meta[name='twitter:image']").unwrap();
+
+        let twitter_image = self
+            .document
+            .select(&twitter_image_selector)
+            .next()
+            .and_then(|element| {
+                element
+                    .value()
+                    .attr("content")
+                    .map(|content| content.to_string())
+            });
+
+        twitter_image
+    }
+
+    pub fn image(&self) -> Option<String> {
+        self.extract_og_image()
+            .or_else(|| self.extract_twitter_image())
+    }
 }
 
 #[cfg(test)]
@@ -224,5 +273,30 @@ mod test {
         let favicon = scraper.favicon();
 
         assert_eq!(favicon, Some("/favicon.ico".to_string()));
+    }
+
+    #[test]
+    fn extract_og_image() {
+        let scraper = MetaScraper::new(
+            r#"<meta property="og:image" content="https://example.com/image.jpg" />"#,
+        );
+
+        let og_image = scraper.extract_og_image();
+
+        assert_eq!(og_image, Some("https://example.com/image.jpg".to_string()));
+    }
+
+    #[test]
+    fn extract_twitter_image() {
+        let scraper = MetaScraper::new(
+            r#"<meta name="twitter:image" content="https://example.com/image.jpg" />"#,
+        );
+
+        let twitter_image = scraper.extract_twitter_image();
+
+        assert_eq!(
+            twitter_image,
+            Some("https://example.com/image.jpg".to_string())
+        );
     }
 }
