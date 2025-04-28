@@ -139,6 +139,22 @@ impl MetaScraper {
             .or_else(|| self.extract_twitter_description())
             .or_else(|| self.extract_description())
     }
+
+    /// Expected Output: `"/favicon.ico"`
+    /// ```html
+    /// <link rel="icon" href="/favicon.ico" />
+    /// ```
+    pub fn favicon(&self) -> Option<String> {
+        let favicon_selector = scraper::Selector::parse("link[rel='icon']").unwrap();
+
+        let favicon = self
+            .document
+            .select(&favicon_selector)
+            .next()
+            .and_then(|element| element.value().attr("href").map(|href| href.to_string()));
+
+        favicon
+    }
 }
 
 #[cfg(test)]
@@ -199,5 +215,14 @@ mod test {
         let twitter_description = scraper.extract_twitter_description();
 
         assert_eq!(twitter_description, Some("My Description".to_string()));
+    }
+
+    #[test]
+    fn favicon() {
+        let scraper = MetaScraper::new(r#"<link rel="icon" href="/favicon.ico" />"#);
+
+        let favicon = scraper.favicon();
+
+        assert_eq!(favicon, Some("/favicon.ico".to_string()));
     }
 }
