@@ -177,6 +177,29 @@ impl MetaScraper {
         og_image
     }
 
+    /// Expected Output: `["https://example.com/image.jpg", "https://example.com/image.png"]`
+    /// ```html
+    /// <meta property="og:image" content="https://example.com/image.jpg" />
+    /// <meta property="og:image" content="https://example.com/image.png" />
+    /// ```
+    pub fn extract_og_images(&self) -> Vec<String> {
+        let og_image_selector = scraper::Selector::parse("meta[property='og:image']").unwrap();
+
+        let og_images = self
+            .document
+            .select(&og_image_selector)
+            .into_iter()
+            .filter_map(|element| {
+                element
+                    .value()
+                    .attr("content")
+                    .map(|content| content.to_string())
+            })
+            .collect::<Vec<String>>();
+
+        og_images
+    }
+
     /// Expected Output: `"https://example.com/image.jpg"`
     /// ```html
     /// <meta name="twitter:image" content="https://example.com/image.jpg" />
@@ -284,6 +307,25 @@ mod test {
         let og_image = scraper.extract_og_image();
 
         assert_eq!(og_image, Some("https://example.com/image.jpg".to_string()));
+    }
+
+    #[test]
+    fn extract_og_images() {
+        let scraper = MetaScraper::new(
+            r#"
+            <meta property="og:image" content="https://example.com/image.jpg" />
+            <meta property="og:image" content="https://example.com/image.png" />"#,
+        );
+
+        let og_image = scraper.extract_og_images();
+
+        assert_eq!(
+            og_image,
+            vec![
+                "https://example.com/image.jpg".to_string(),
+                "https://example.com/image.png".to_string()
+            ]
+        );
     }
 
     #[test]
