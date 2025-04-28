@@ -1,60 +1,51 @@
-# template-devcontainer
+# html-meta-scraper
 
-```bash
-npx degit 46ki75/template-devcontainer
+Scrape and extract metadata like title, description, images, and favicon from HTML documents.
+
+## Features
+
+- Extract `<title>`, OGP metadata (`og:title`, `og:description`, `og:image`)
+- Extract Twitter Card metadata (`twitter:title`, `twitter:description`, `twitter:image`)
+- Extract favicon (`<link rel="icon" href="...">`)
+- Prioritized fallback (e.g., `og:title` → `twitter:title` → `<title>`)
+
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+html-meta-scraper = "0.1.0"
 ```
 
-## Custom Features for Local Development
+## Example
 
-Create a directory at `.devcontainer/features/<YOUR_FEATURE_NAME>` containing following files:
+```rust
+use html_meta_scraper::MetaScraper;
 
-- `devcontainer-feature.json`: Metadata describing the feature.
-- `install.sh`: Shell script to install the feature.
+let html = r#"
+    <html>
+        <head>
+            <meta property="og:title" content="Example Title" />
+            <meta name="twitter:description" content="Example Description" />
+            <link rel="icon" href="/favicon.ico" />
+        </head>
+    </html>
+"#;
 
-### `devcontainer-feature.json`
+let scraper = MetaScraper::new(html);
 
-- `id`: Identifier for this feature.
-- `installAfter`: Specifies dependencies that must be installed before this feature.
-- `customizations.vscode`: VSCode settings and extensions to apply when this features is used.
-
-```json
-{
-  "id": "cargo-binstall",
-  "name": "cargo-binstall (via cargo)",
-  "version": "1.0.0",
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "[rust]": { "editor.defaultFormatter": "rust-lang.rust-analyzer" }
-      },
-      "extensions": ["rust-lang.rust-analyzer"]
-    }
-  },
-  "installsAfter": ["ghcr.io/devcontainers/features/rust"]
-}
+assert_eq!(scraper.title(), Some("Example Title".to_string()));
+assert_eq!(scraper.description(), Some("Example Description".to_string()));
+assert_eq!(scraper.favicon(), Some("/favicon.ico".to_string()));
 ```
 
-### `install.sh`
+## API Overview
 
-Dev Container features are defined using simple shell scripts.
-
-```bash
-#!/bin/bash
-
-set -e -u -o pipefail
-
-USERNAME="${USERNAME:-"vscode"}"
-
-su "${USERNAME}" -c "curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash"
-su "${USERNAME}" -c "cargo binstall just cargo-lambda --no-confirm"
-
-echo "Done!"
-
-# Add your custom installation steps below ---
-```
-
-### Need More Information?
-
-Exploring the actual implementations in [Available Dev Container Features](https://containers.dev/features) is the best way to learn how to create your own.
-
-For detailed specifications, see the [Dev Container metadata reference](https://containers.dev/implementors/json_reference/).
+| Method              | Description                                                                           |
+| :------------------ | :------------------------------------------------------------------------------------ |
+| `title()`           | Retrieves page title (`og:title` → `twitter:title` → `<title>`)                       |
+| `description()`     | Retrieves page description (`og:description` → `twitter:description` → `description`) |
+| `image()`           | Retrieves page image URL (`og:image` → `twitter:image`)                               |
+| `favicon()`         | Retrieves favicon URL (`<link rel="icon">`)                                           |
+| `extract_*` methods | Low-level methods to extract specific metadata                                        |
