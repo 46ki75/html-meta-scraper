@@ -9,6 +9,10 @@ impl MetaScraper {
         MetaScraper { document }
     }
 
+    /// Expected Output: `"Page Title"`
+    /// ```html
+    /// <title>Page Title</title>
+    /// ```
     pub fn extract_title(&self) -> Option<String> {
         self.document
             .select(&scraper::Selector::parse("title").unwrap())
@@ -16,6 +20,10 @@ impl MetaScraper {
             .map(|element| element.text().collect::<String>())
     }
 
+    /// Expected Output: `"Page Title"`
+    /// ```html
+    /// <meta property="og:title" content="Page Title" />
+    /// ```
     pub fn extract_og_title(&self) -> Option<String> {
         let og_title_selector = scraper::Selector::parse("meta[property='og:title']").unwrap();
 
@@ -33,6 +41,10 @@ impl MetaScraper {
         og_title
     }
 
+    /// Expected Output: `"Page Title"`
+    /// ```html
+    /// <meta name="twitter:title" content="Page Title" />
+    /// ```
     pub fn extract_twitter_title(&self) -> Option<String> {
         let twitter_title_selector =
             scraper::Selector::parse("meta[name='twitter:title']").unwrap();
@@ -57,6 +69,10 @@ impl MetaScraper {
             .or_else(|| self.extract_title())
     }
 
+    /// Expected Output: `"My Description"`
+    /// ```html
+    /// <meta name="description" content="My Description" />
+    /// ```
     pub fn extract_description(&self) -> Option<String> {
         let description_selector = scraper::Selector::parse("meta[name='description']").unwrap();
 
@@ -74,6 +90,10 @@ impl MetaScraper {
         description
     }
 
+    /// Expected Output: `"My Description"`
+    /// ```html
+    /// <meta property="og:description" content="My Description" />
+    /// ```
     pub fn extract_og_description(&self) -> Option<String> {
         let og_description_selector =
             scraper::Selector::parse("meta[property='og:description']").unwrap();
@@ -92,6 +112,10 @@ impl MetaScraper {
         og_description
     }
 
+    /// Expected Output: `"My Description"`
+    /// ```html
+    /// <meta name="twitter:description" content="My Description" />
+    /// ```
     pub fn extract_twitter_description(&self) -> Option<String> {
         let twitter_description_selector =
             scraper::Selector::parse("meta[name='twitter:description']").unwrap();
