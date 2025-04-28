@@ -1,0 +1,15 @@
+[package]
+name = "html-meta-scraper"
+version = "0.1.0"
+edition = "2024"
+description = "Scrape and extract metadata like title, description, images, and favicon from HTML documents."
+authors = ["Chomolungma Shirayuki"]
+repository = "https://github.com/46ki75/html-meta-scraper"
+license = "MIT"
+documentation = "https://docs.rs/html-meta-scraper"
+categories = ["web-programming", "parsing", "data-structures"]
+keywords = ["html", "meta", "scraper", "parser", "opengraph"]
+readme = "./README.md"
+
+[dependencies]
+scraper = "0.23.1"
