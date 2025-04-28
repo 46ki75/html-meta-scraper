@@ -109,6 +109,12 @@ impl MetaScraper {
 
         twitter_description
     }
+
+    pub fn description(&self) -> Option<String> {
+        self.extract_og_description()
+            .or_else(|| self.extract_twitter_description())
+            .or_else(|| self.extract_description())
+    }
 }
 
 #[cfg(test)]
