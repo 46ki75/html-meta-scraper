@@ -250,6 +250,29 @@ impl MetaScraper {
         self.extract_og_image()
             .or_else(|| self.extract_twitter_image())
     }
+
+    /// Expected Output: `"en"`
+    /// ```html
+    /// <html lang="en">
+    /// ...
+    /// </html>
+    /// ```
+    pub fn lang(&self) -> Option<String> {
+        let html_selector = scraper::Selector::parse("html").unwrap();
+
+        let lang = self
+            .document
+            .select(&html_selector)
+            .next()
+            .and_then(|element| {
+                element
+                    .value()
+                    .attr("lang")
+                    .map(|content| content.to_string())
+            });
+
+        lang
+    }
 }
 
 #[cfg(test)]
@@ -363,5 +386,20 @@ mod test {
             twitter_image,
             Some("https://example.com/image.jpg".to_string())
         );
+    }
+
+    #[test]
+    fn lang() {
+        let scraper = MetaScraper::new(
+            r#"
+            <html lang="en">
+            ...
+            </html>
+        "#,
+        );
+
+        let lang = scraper.lang();
+
+        assert_eq!(lang, Some("en".to_owned()));
     }
 }

@@ -48,4 +48,5 @@ assert_eq!(scraper.favicon(), Some("/favicon.ico".to_string()));
 | `description()`     | Retrieves page description (`og:description` → `twitter:description` → `description`) |
 | `image()`           | Retrieves page image URL (`og:image` → `twitter:image`)                               |
 | `favicon()`         | Retrieves favicon URL (`<link rel="icon">`)                                           |
+| `lang()`            | Retrieves language (`<html lang="en">`)                                               |
 | `extract_*` methods | Low-level methods to extract specific metadata                                        |
