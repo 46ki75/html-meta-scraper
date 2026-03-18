@@ -12,4 +12,4 @@ keywords = ["html", "meta", "scraper", "parser", "opengraph"]
 readme = "./README.md"
 
 [dependencies]
-scraper = "0.25.0"
+scraper = "0.26.0"
