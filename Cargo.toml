@@ -1,6 +1,6 @@
 [package]
 name = "html-meta-scraper"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Scrape and extract metadata like title, description, images, and favicon from HTML documents."
 authors = ["Ikuma Yamashita"]
