@@ -1,17 +1,59 @@
+//! Extract metadata from an HTML document — `<title>`, OpenGraph and
+//! Twitter Card tags, favicon, and the root `<html lang>` attribute.
+//!
+//! This crate parses HTML strings you provide; it does not fetch URLs.
+//!
+//! # Example
+//!
+//! ```
+//! use html_meta_scraper::MetaScraper;
+//!
+//! let html = r#"
+//!     <html lang="en">
+//!         <head>
+//!             <title>Native Title</title>
+//!             <meta property="og:title" content="OG Title" />
+//!             <meta property="og:image" content="https://example.com/cover.jpg" />
+//!         </head>
+//!     </html>
+//! "#;
+//!
+//! let m = MetaScraper::new(html);
+//! assert_eq!(m.title().as_deref(), Some("OG Title"));
+//! assert_eq!(m.image().as_deref(), Some("https://example.com/cover.jpg"));
+//! assert_eq!(m.lang().as_deref(), Some("en"));
+//! ```
+
+/// Holds a parsed HTML document and exposes accessors for common page
+/// metadata.
+///
+/// Construct one with [`MetaScraper::new`], then call the per-field
+/// accessors. The document is parsed once at construction time; accessors
+/// are read-only and may be called repeatedly.
 pub struct MetaScraper {
     document: scraper::Html,
 }
 
 impl MetaScraper {
+    /// Parse an HTML document.
+    ///
+    /// Parsing is eager and lenient — malformed HTML will not panic.
     pub fn new(html: &str) -> Self {
         let document = scraper::Html::parse_document(html);
 
         MetaScraper { document }
     }
 
-    /// Expected Output: `"Page Title"`
-    /// ```html
-    /// <title>Page Title</title>
+    /// Returns the trimmed text of the first `<title>` element.
+    ///
+    /// Returns `None` if the tag is absent, empty, or whitespace-only.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new("<title>Page Title</title>");
+    /// assert_eq!(m.extract_title().as_deref(), Some("Page Title"));
     /// ```
     pub fn extract_title(&self) -> Option<String> {
         self.document
@@ -21,9 +63,18 @@ impl MetaScraper {
             .filter(|s| !s.is_empty())
     }
 
-    /// Expected Output: `"Page Title"`
-    /// ```html
-    /// <meta property="og:title" content="Page Title" />
+    /// Returns the OpenGraph title from `<meta property="og:title">`.
+    ///
+    /// Also accepts the non-conformant `<meta name="og:title">` variant
+    /// emitted by some CMSes. An empty `content` attribute is treated as
+    /// absent.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta property="og:title" content="Hello" />"#);
+    /// assert_eq!(m.extract_og_title().as_deref(), Some("Hello"));
     /// ```
     pub fn extract_og_title(&self) -> Option<String> {
         let og_title_selector =
@@ -40,9 +91,17 @@ impl MetaScraper {
         og_title
     }
 
-    /// Expected Output: `"Page Title"`
-    /// ```html
-    /// <meta name="twitter:title" content="Page Title" />
+    /// Returns the Twitter Card title from `<meta name="twitter:title">`.
+    ///
+    /// Also accepts `<meta property="twitter:title">`, which appears in
+    /// the wild. An empty `content` attribute is treated as absent.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta name="twitter:title" content="Hello" />"#);
+    /// assert_eq!(m.extract_twitter_title().as_deref(), Some("Hello"));
     /// ```
     pub fn extract_twitter_title(&self) -> Option<String> {
         let twitter_title_selector =
@@ -60,23 +119,28 @@ impl MetaScraper {
         twitter_title
     }
 
-    /// Retrieves the page title.
+    /// Returns the page title, trying each source in turn and returning
+    /// the first match:
     ///
-    /// Priority order:
-    /// 1. `<meta property="og:title">`
-    /// 2. `<meta name="twitter:title">`
-    /// 3. `<title>`
-    ///
-    /// Returns the first one found.
+    /// 1. [`extract_og_title`](Self::extract_og_title) — `og:title`
+    /// 2. [`extract_twitter_title`](Self::extract_twitter_title) — `twitter:title`
+    /// 3. [`extract_title`](Self::extract_title) — `<title>`
     pub fn title(&self) -> Option<String> {
         self.extract_og_title()
             .or_else(|| self.extract_twitter_title())
             .or_else(|| self.extract_title())
     }
 
-    /// Expected Output: `"My Description"`
-    /// ```html
-    /// <meta name="description" content="My Description" />
+    /// Returns the standard description from `<meta name="description">`.
+    ///
+    /// An empty `content` attribute is treated as absent.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta name="description" content="A page." />"#);
+    /// assert_eq!(m.extract_description().as_deref(), Some("A page."));
     /// ```
     pub fn extract_description(&self) -> Option<String> {
         let description_selector = scraper::Selector::parse("meta[name='description']").unwrap();
@@ -92,9 +156,18 @@ impl MetaScraper {
         description
     }
 
-    /// Expected Output: `"My Description"`
-    /// ```html
-    /// <meta property="og:description" content="My Description" />
+    /// Returns the OpenGraph description from
+    /// `<meta property="og:description">`.
+    ///
+    /// Also accepts the non-conformant `<meta name="og:description">`
+    /// variant. An empty `content` attribute is treated as absent.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta property="og:description" content="A page." />"#);
+    /// assert_eq!(m.extract_og_description().as_deref(), Some("A page."));
     /// ```
     pub fn extract_og_description(&self) -> Option<String> {
         let og_description_selector = scraper::Selector::parse(
@@ -113,9 +186,18 @@ impl MetaScraper {
         og_description
     }
 
-    /// Expected Output: `"My Description"`
-    /// ```html
-    /// <meta name="twitter:description" content="My Description" />
+    /// Returns the Twitter Card description from
+    /// `<meta name="twitter:description">`.
+    ///
+    /// Also accepts `<meta property="twitter:description">`. An empty
+    /// `content` attribute is treated as absent.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta name="twitter:description" content="A page." />"#);
+    /// assert_eq!(m.extract_twitter_description().as_deref(), Some("A page."));
     /// ```
     pub fn extract_twitter_description(&self) -> Option<String> {
         let twitter_description_selector = scraper::Selector::parse(
@@ -134,23 +216,31 @@ impl MetaScraper {
         twitter_description
     }
 
-    /// Retrieves the page description.
+    /// Returns the page description, trying each source in turn and
+    /// returning the first match:
     ///
-    /// Priority order:
-    /// 1. `<meta property="og:description">`
-    /// 2. `<meta name="twitter:description">`
-    /// 3. `<meta name="description">`
-    ///
-    /// Returns the first one found.
+    /// 1. [`extract_og_description`](Self::extract_og_description) — `og:description`
+    /// 2. [`extract_twitter_description`](Self::extract_twitter_description) — `twitter:description`
+    /// 3. [`extract_description`](Self::extract_description) — `<meta name="description">`
     pub fn description(&self) -> Option<String> {
         self.extract_og_description()
             .or_else(|| self.extract_twitter_description())
             .or_else(|| self.extract_description())
     }
 
-    /// Expected Output: `"/favicon.ico"`
-    /// ```html
-    /// <link rel="icon" href="/favicon.ico" />
+    /// Returns the `href` of the first `<link>` whose `rel` contains
+    /// `icon` as a whitespace-separated token.
+    ///
+    /// Matches `rel="icon"`, `rel="shortcut icon"`, `rel="icon shortcut"`,
+    /// and similar forms. Does not match `apple-touch-icon` (that's a
+    /// single different token).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<link rel="shortcut icon" href="/favicon.ico" />"#);
+    /// assert_eq!(m.favicon().as_deref(), Some("/favicon.ico"));
     /// ```
     pub fn favicon(&self) -> Option<String> {
         let favicon_selector = scraper::Selector::parse("link[rel~='icon']").unwrap();
@@ -164,9 +254,19 @@ impl MetaScraper {
         favicon
     }
 
-    /// Expected Output: `"https://example.com/image.jpg"`
-    /// ```html
-    /// <meta property="og:image" content="https://example.com/image.jpg" />
+    /// Returns the first OpenGraph image URL from
+    /// `<meta property="og:image">`.
+    ///
+    /// Also accepts the non-conformant `<meta name="og:image">` variant.
+    /// An empty `content` attribute is treated as absent. For pages that
+    /// declare multiple images, see [`extract_og_images`](Self::extract_og_images).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta property="og:image" content="https://example.com/i.jpg" />"#);
+    /// assert_eq!(m.extract_og_image().as_deref(), Some("https://example.com/i.jpg"));
     /// ```
     pub fn extract_og_image(&self) -> Option<String> {
         let og_image_selector =
@@ -183,10 +283,24 @@ impl MetaScraper {
         og_image
     }
 
-    /// Expected Output: `["https://example.com/image.jpg", "https://example.com/image.png"]`
-    /// ```html
-    /// <meta property="og:image" content="https://example.com/image.jpg" />
-    /// <meta property="og:image" content="https://example.com/image.png" />
+    /// Returns every OpenGraph image URL in document order.
+    ///
+    /// Both `<meta property="og:image">` and `<meta name="og:image">`
+    /// contribute. Empty `content` attributes are skipped. Returns an
+    /// empty `Vec` if none are declared.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"
+    ///     <meta property="og:image" content="https://example.com/a.jpg" />
+    ///     <meta property="og:image" content="https://example.com/b.png" />
+    /// "#);
+    /// assert_eq!(
+    ///     m.extract_og_images(),
+    ///     vec!["https://example.com/a.jpg", "https://example.com/b.png"],
+    /// );
     /// ```
     pub fn extract_og_images(&self) -> Vec<String> {
         let og_image_selector =
@@ -203,10 +317,19 @@ impl MetaScraper {
         og_images
     }
 
-    /// Expected Output: `"https://example.com/image.jpg"`
-    /// ```html
-    /// <meta name="twitter:image" content="https://example.com/image.jpg" />
-    /// <meta name="twitter:image:alt" content="Image description" />
+    /// Returns the Twitter Card image URL from
+    /// `<meta name="twitter:image">`.
+    ///
+    /// Also accepts `<meta property="twitter:image">`. An empty `content`
+    /// attribute is treated as absent. Related tags such as
+    /// `twitter:image:alt` are not returned.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<meta name="twitter:image" content="https://example.com/i.jpg" />"#);
+    /// assert_eq!(m.extract_twitter_image().as_deref(), Some("https://example.com/i.jpg"));
     /// ```
     pub fn extract_twitter_image(&self) -> Option<String> {
         let twitter_image_selector =
@@ -224,23 +347,27 @@ impl MetaScraper {
         twitter_image
     }
 
-    /// Retrieves the page image URL.
+    /// Returns the page image URL, trying each source in turn and
+    /// returning the first match:
     ///
-    /// Priority order:
-    /// 1. `<meta property="og:image">`
-    /// 2. `<meta name="twitter:image">`
+    /// 1. [`extract_og_image`](Self::extract_og_image) — `og:image`
+    /// 2. [`extract_twitter_image`](Self::extract_twitter_image) — `twitter:image`
     ///
-    /// Returns the first one found.
+    /// There is no native HTML element to fall back to, so an absent
+    /// result simply means neither tag was declared.
     pub fn image(&self) -> Option<String> {
         self.extract_og_image()
             .or_else(|| self.extract_twitter_image())
     }
 
-    /// Expected Output: `"en"`
-    /// ```html
-    /// <html lang="en">
-    /// ...
-    /// </html>
+    /// Returns the value of the root `<html lang="...">` attribute.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use html_meta_scraper::MetaScraper;
+    /// let m = MetaScraper::new(r#"<html lang="en"><head></head></html>"#);
+    /// assert_eq!(m.lang().as_deref(), Some("en"));
     /// ```
     pub fn lang(&self) -> Option<String> {
         let html_selector = scraper::Selector::parse("html").unwrap();
