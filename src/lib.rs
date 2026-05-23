@@ -17,7 +17,8 @@ impl MetaScraper {
         self.document
             .select(&scraper::Selector::parse("title").unwrap())
             .next()
-            .map(|element| element.text().collect::<String>())
+            .map(|element| element.text().collect::<String>().trim().to_string())
+            .filter(|s| !s.is_empty())
     }
 
     /// Expected Output: `"Page Title"`
@@ -25,18 +26,16 @@ impl MetaScraper {
     /// <meta property="og:title" content="Page Title" />
     /// ```
     pub fn extract_og_title(&self) -> Option<String> {
-        let og_title_selector = scraper::Selector::parse("meta[property='og:title']").unwrap();
+        let og_title_selector =
+            scraper::Selector::parse("meta[property='og:title'], meta[name='og:title']").unwrap();
 
         let og_title = self
             .document
             .select(&og_title_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         og_title
     }
@@ -47,18 +46,16 @@ impl MetaScraper {
     /// ```
     pub fn extract_twitter_title(&self) -> Option<String> {
         let twitter_title_selector =
-            scraper::Selector::parse("meta[name='twitter:title']").unwrap();
+            scraper::Selector::parse("meta[name='twitter:title'], meta[property='twitter:title']")
+                .unwrap();
 
         let twitter_title = self
             .document
             .select(&twitter_title_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         twitter_title
     }
@@ -88,12 +85,9 @@ impl MetaScraper {
             .document
             .select(&description_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         description
     }
@@ -103,19 +97,18 @@ impl MetaScraper {
     /// <meta property="og:description" content="My Description" />
     /// ```
     pub fn extract_og_description(&self) -> Option<String> {
-        let og_description_selector =
-            scraper::Selector::parse("meta[property='og:description']").unwrap();
+        let og_description_selector = scraper::Selector::parse(
+            "meta[property='og:description'], meta[name='og:description']",
+        )
+        .unwrap();
 
         let og_description = self
             .document
             .select(&og_description_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         og_description
     }
@@ -125,19 +118,18 @@ impl MetaScraper {
     /// <meta name="twitter:description" content="My Description" />
     /// ```
     pub fn extract_twitter_description(&self) -> Option<String> {
-        let twitter_description_selector =
-            scraper::Selector::parse("meta[name='twitter:description']").unwrap();
+        let twitter_description_selector = scraper::Selector::parse(
+            "meta[name='twitter:description'], meta[property='twitter:description']",
+        )
+        .unwrap();
 
         let twitter_description = self
             .document
             .select(&twitter_description_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         twitter_description
     }
@@ -161,7 +153,7 @@ impl MetaScraper {
     /// <link rel="icon" href="/favicon.ico" />
     /// ```
     pub fn favicon(&self) -> Option<String> {
-        let favicon_selector = scraper::Selector::parse("link[rel='icon']").unwrap();
+        let favicon_selector = scraper::Selector::parse("link[rel~='icon']").unwrap();
 
         let favicon = self
             .document
@@ -177,18 +169,16 @@ impl MetaScraper {
     /// <meta property="og:image" content="https://example.com/image.jpg" />
     /// ```
     pub fn extract_og_image(&self) -> Option<String> {
-        let og_image_selector = scraper::Selector::parse("meta[property='og:image']").unwrap();
+        let og_image_selector =
+            scraper::Selector::parse("meta[property='og:image'], meta[name='og:image']").unwrap();
 
         let og_image = self
             .document
             .select(&og_image_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         og_image
     }
@@ -199,18 +189,15 @@ impl MetaScraper {
     /// <meta property="og:image" content="https://example.com/image.png" />
     /// ```
     pub fn extract_og_images(&self) -> Vec<String> {
-        let og_image_selector = scraper::Selector::parse("meta[property='og:image']").unwrap();
+        let og_image_selector =
+            scraper::Selector::parse("meta[property='og:image'], meta[name='og:image']").unwrap();
 
         let og_images = self
             .document
             .select(&og_image_selector)
-            .into_iter()
-            .filter_map(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            })
+            .filter_map(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string())
             .collect::<Vec<String>>();
 
         og_images
@@ -223,18 +210,16 @@ impl MetaScraper {
     /// ```
     pub fn extract_twitter_image(&self) -> Option<String> {
         let twitter_image_selector =
-            scraper::Selector::parse("meta[name='twitter:image']").unwrap();
+            scraper::Selector::parse("meta[name='twitter:image'], meta[property='twitter:image']")
+                .unwrap();
 
         let twitter_image = self
             .document
             .select(&twitter_image_selector)
             .next()
-            .and_then(|element| {
-                element
-                    .value()
-                    .attr("content")
-                    .map(|content| content.to_string())
-            });
+            .and_then(|element| element.value().attr("content"))
+            .filter(|content| !content.is_empty())
+            .map(|content| content.to_string());
 
         twitter_image
     }
@@ -401,5 +386,133 @@ mod test {
         let lang = scraper.lang();
 
         assert_eq!(lang, Some("en".to_owned()));
+    }
+
+    // ---------------------------------------------------------------------
+    // Bug-reproduction tests. These encode the desired behavior and are
+    // expected to FAIL against the current implementation.
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn empty_title_tag_returns_none() {
+        let scraper = MetaScraper::new(r#"<title></title>"#);
+        assert_eq!(scraper.extract_title(), None);
+    }
+
+    #[test]
+    fn title_whitespace_is_trimmed() {
+        let scraper = MetaScraper::new("<title>\n  Page Title\n</title>");
+        assert_eq!(scraper.extract_title(), Some("Page Title".to_string()));
+    }
+
+    #[test]
+    fn empty_og_title_content_returns_none() {
+        let scraper = MetaScraper::new(r#"<meta property="og:title" content="" />"#);
+        assert_eq!(scraper.extract_og_title(), None);
+    }
+
+    #[test]
+    fn empty_description_content_returns_none() {
+        let scraper = MetaScraper::new(r#"<meta name="description" content="" />"#);
+        assert_eq!(scraper.extract_description(), None);
+    }
+
+    #[test]
+    fn og_title_with_name_attribute_is_recognized() {
+        // Some CMSes emit `name="og:..."` instead of `property="og:..."`.
+        let scraper = MetaScraper::new(r#"<meta name="og:title" content="Page Title" />"#);
+        assert_eq!(scraper.extract_og_title(), Some("Page Title".to_string()));
+    }
+
+    #[test]
+    fn og_description_with_name_attribute_is_recognized() {
+        let scraper =
+            MetaScraper::new(r#"<meta name="og:description" content="My Description" />"#);
+        assert_eq!(
+            scraper.extract_og_description(),
+            Some("My Description".to_string())
+        );
+    }
+
+    #[test]
+    fn og_image_with_name_attribute_is_recognized() {
+        let scraper =
+            MetaScraper::new(r#"<meta name="og:image" content="https://example.com/i.jpg" />"#);
+        assert_eq!(
+            scraper.extract_og_image(),
+            Some("https://example.com/i.jpg".to_string())
+        );
+    }
+
+    #[test]
+    fn twitter_title_with_property_attribute_is_recognized() {
+        // Mirror case: Twitter tags sometimes appear as `property=`.
+        let scraper = MetaScraper::new(r#"<meta property="twitter:title" content="Page Title" />"#);
+        assert_eq!(
+            scraper.extract_twitter_title(),
+            Some("Page Title".to_string())
+        );
+    }
+
+    #[test]
+    fn twitter_description_with_property_attribute_is_recognized() {
+        let scraper =
+            MetaScraper::new(r#"<meta property="twitter:description" content="My Description" />"#);
+        assert_eq!(
+            scraper.extract_twitter_description(),
+            Some("My Description".to_string())
+        );
+    }
+
+    #[test]
+    fn twitter_image_with_property_attribute_is_recognized() {
+        let scraper = MetaScraper::new(
+            r#"<meta property="twitter:image" content="https://example.com/i.jpg" />"#,
+        );
+        assert_eq!(
+            scraper.extract_twitter_image(),
+            Some("https://example.com/i.jpg".to_string())
+        );
+    }
+
+    #[test]
+    fn favicon_matches_shortcut_icon() {
+        let scraper = MetaScraper::new(r#"<link rel="shortcut icon" href="/favicon.ico" />"#);
+        assert_eq!(scraper.favicon(), Some("/favicon.ico".to_string()));
+    }
+
+    #[test]
+    fn favicon_matches_multi_token_rel() {
+        let scraper = MetaScraper::new(r#"<link rel="icon shortcut" href="/favicon.ico" />"#);
+        assert_eq!(scraper.favicon(), Some("/favicon.ico".to_string()));
+    }
+
+    #[test]
+    fn title_fallback_prefers_og_over_twitter_over_native() {
+        let scraper = MetaScraper::new(
+            r#"
+            <title>Native Title</title>
+            <meta property="og:title" content="OG Title" />
+            <meta name="twitter:title" content="Twitter Title" />
+            "#,
+        );
+        assert_eq!(scraper.title(), Some("OG Title".to_string()));
+
+        let scraper = MetaScraper::new(
+            r#"
+            <title>Native Title</title>
+            <meta name="twitter:title" content="Twitter Title" />
+            "#,
+        );
+        assert_eq!(scraper.title(), Some("Twitter Title".to_string()));
+
+        let scraper = MetaScraper::new(r#"<title>Native Title</title>"#);
+        assert_eq!(scraper.title(), Some("Native Title".to_string()));
+    }
+
+    #[test]
+    fn title_returns_none_when_no_source_present() {
+        let scraper = MetaScraper::new(r#"<html><head></head><body></body></html>"#);
+        assert_eq!(scraper.title(), None);
     }
 }
